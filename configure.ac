@@ -85,6 +85,12 @@ AC_ARG_ENABLE(x11,
     [enable_x11="$enableval"],
     [enable_x11="auto"])
 
+AC_ARG_ENABLE(dri3,
+    [AC_HELP_STRING([--enable-dri3],
+                    [build with VA/X11-DRI3 API support @<:@default=auto@:>@])],
+    [enable_dri3="$enableval"],
+    [enable_dri3="auto"])
+
 AC_ARG_ENABLE([wayland],
     [AC_HELP_STRING([--enable-wayland],
                     [build with VA/Wayland API support @<:@default=auto@:>@])],
@@ -170,6 +176,27 @@ if test "x$enable_x11" != "xno"; then
 fi
 AM_CONDITIONAL(USE_X11, test "$USE_X11" = "yes")
 
+dnl Check for X11-DRI3
+USE_DRI3="no"
+
+if test "$USE_X11:$enable_dri3" = "no:yes"; then
+    AC_MSG_ERROR([VA/X11-DRI3 explicitly enabled, but VA/X11 isn't built])
+fi
+if test "$enable_dri3" != "no"; then
+    PKG_CHECK_MODULES([DRI3], [xcb x11-xcb xcb-dri3 xcb-sync \
+		       xshmfence], [USE_DRI3="yes"], [:])
+
+    if test "x$USE_DRI3" = "xno" -a "x$enable_dri3" = "xyes"; then
+       AC_MSG_ERROR([VA/X11-dri3 explicitly enabled, however $DRI3_PKG_ERRORS])
+    fi
+
+    if test "$USE_DRI3" = "yes"; then
+       AC_DEFINE([HAVE_VA_DRI3], [1], [Defined to 1 if VA/X11-DRI3 API is
+built])
+    fi
+fi
+AM_CONDITIONAL(USE_DRI3, test "$USE_DRI3" = "yes")
+
 dnl Check for Wayland
 WAYLAND_API_VERSION=wayland_api_version
 AC_SUBST(WAYLAND_API_VERSION)
@@ -222,6 +249,7 @@ AC_OUTPUT([
 BACKENDS=""
 AS_IF([test $USE_DRM = yes], [BACKENDS="$BACKENDS drm"])
 AS_IF([test $USE_X11 = yes], [BACKENDS="$BACKENDS x11"])
+AS_IF([test x$USE_DRI3 = xyes], [BACKENDS="$BACKENDS x11-dri3"])
 AS_IF([test $USE_WAYLAND = yes], [BACKENDS="$BACKENDS wayland"])
 
 echo

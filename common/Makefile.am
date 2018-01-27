@@ -37,6 +37,9 @@ if USE_X11
 source_c		+= va_display_x11.c
 libva_display_cflags	+= $(X11_CFLAGS) $(LIBVA_X11_CFLAGS)
 libva_display_libs	+= $(X11_LIBS) $(LIBVA_X11_LIBS)
+if USE_DRI3
+libva_display_libs	+= $(DRI3_LIBS)
+endif
 endif
 
 if USE_DRM
